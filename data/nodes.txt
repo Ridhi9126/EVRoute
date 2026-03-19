@@ -1,0 +1,8 @@
+0 Delhi
+1 Noida
+2 Gurgaon
+3 Faridabad
+4 Ghaziabad
+5 Jaipur
+6 Agra
+7 Chandigarh
