@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EVRoute Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+</head>
+<body>
+    
+    <div id="map"></div>
+
+    <div class="glass-panel">
+        <div class="header">
+            <span class="icon">⚡</span>
+            <div>
+                <h1>EVRoute</h1>
+                <p>Smart Charging Network</p>
+            </div>
+        </div>
+        
+        <div class="terminal-instruction">
+            <span style="font-size:14px; color:#cbd5e1; margin-bottom:12px; display:block; font-weight:500;">Plan your route natively:</span>
+            <form id="route-form" style="display:flex; flex-direction:column; gap:12px;">
+                <input type="text" id="city-input" placeholder="Location (e.g. Delhi, Mumbai)" required style="padding:12px; border-radius:8px; border:1px solid #475569; background:#1e293b; color:#fff;">
+                <input type="number" id="battery-input" placeholder="Battery Level %" required min="1" max="100" style="padding:12px; border-radius:8px; border:1px solid #475569; background:#1e293b; color:#fff;">
+                <button type="submit" style="padding:12px; margin-top:4px; border-radius:8px; background:linear-gradient(135deg, #10b981, #059669); color:#fff; cursor:pointer; font-weight:700; border:none; transition:transform 0.2s;">Find Charger</button>
+            </form>
+            <div id="error-msg" style="color:#ef4444; font-size:13px; margin-top:8px; display:none;"></div>
+        </div>
+
+        <div id="dynamic-results"></div>
+    </div>
+
+    <script src="coreData.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>

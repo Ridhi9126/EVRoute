@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>EVRoute OpenStreetMap</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>#map { height: 100vh; width: 100%; }</style>
+</head>
+<body>
+<div id="map"></div>
+<script>
+var map = L.map('map').setView([28.6139, 77.209], 6);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap contributors'
+}).addTo(map);
+var latlngs0 = [
+  [28.6139, 77.209],
+];
+L.polyline(latlngs0, {color: 'red', weight: 4}).addTo(map);
+L.marker([28.6139, 77.209]).addTo(map).bindPopup('<b>Delhi</b><br>Option 1 Charging Station');
+var latlngs1 = [
+  [28.6139, 77.209],
+  [28.5355, 77.391],
+];
+L.polyline(latlngs1, {color: 'blue', weight: 4}).addTo(map);
+L.marker([28.5355, 77.391]).addTo(map).bindPopup('<b>Noida</b><br>Option 2 Charging Station');
+var latlngs2 = [
+  [28.6139, 77.209],
+  [28.4595, 77.0266],
+];
+L.polyline(latlngs2, {color: 'green', weight: 4}).addTo(map);
+L.marker([28.4595, 77.0266]).addTo(map).bindPopup('<b>Gurugram</b><br>Option 3 Charging Station');
+L.marker([28.6139, 77.209]).addTo(map).bindPopup('<b>Delhi</b><br>Your Location').openPopup();
+</script>
+</body>
+</html>
