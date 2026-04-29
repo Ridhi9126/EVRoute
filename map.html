@@ -1,36 +1,44 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>EVRoute OpenStreetMap</title>
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<style>#map { height: 100vh; width: 100%; }</style>
+    <title>EV Finder</title>
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+
+    <style>
+        body { font-family: Arial; text-align: center; }
+        #map { height: 500px; margin-top: 10px; }
+    </style>
 </head>
 <body>
+
+<h2>EV Charging Station Finder</h2>
+
+<!-- ✅ FORM (IMPORTANT) -->
+<form id="route-form">
+    <div style="display: inline-flex; gap: 10px; align-items: center; justify-content: center;">
+        <input type="text" id="city-input" placeholder="Enter city" required>
+        <button type="button" id="mic-btn-map" style="width: 40px; cursor: pointer; padding: 5px; border-radius: 5px; background: #3b82f6; color: white; border: none;" title="Speak City">🎤</button>
+        <button type="button" id="location-btn-map" onclick="useMyLocation()" style="width: 40px; cursor: pointer; padding: 5px; border-radius: 5px; background: #f59e0b; color: white; border: none;" title="Use My Location">📍</button>
+    </div>
+    <br><br>
+
+    <input type="number" id="battery-input" placeholder="Battery %" required>
+    <br><br>
+
+    <button type="submit">Find Stations</button>
+</form>
+<div id="error-msg" style="color:red; display:none;"></div>
+
+<!-- OUTPUT -->
+<div id="dynamic-results"></div>
+
+<!-- MAP -->
 <div id="map"></div>
-<script>
-var map = L.map('map').setView([28.6139, 77.209], 6);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '&copy; OpenStreetMap contributors'
-}).addTo(map);
-var latlngs0 = [
-  [28.6139, 77.209],
-];
-L.polyline(latlngs0, {color: 'red', weight: 4}).addTo(map);
-L.marker([28.6139, 77.209]).addTo(map).bindPopup('<b>Delhi</b><br>Option 1 Charging Station');
-var latlngs1 = [
-  [28.6139, 77.209],
-  [28.5355, 77.391],
-];
-L.polyline(latlngs1, {color: 'blue', weight: 4}).addTo(map);
-L.marker([28.5355, 77.391]).addTo(map).bindPopup('<b>Noida</b><br>Option 2 Charging Station');
-var latlngs2 = [
-  [28.6139, 77.209],
-  [28.4595, 77.0266],
-];
-L.polyline(latlngs2, {color: 'green', weight: 4}).addTo(map);
-L.marker([28.4595, 77.0266]).addTo(map).bindPopup('<b>Gurugram</b><br>Option 3 Charging Station');
-L.marker([28.6139, 77.209]).addTo(map).bindPopup('<b>Delhi</b><br>Your Location').openPopup();
-</script>
+
+<!-- SCRIPTS -->
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script src="script.js"></script>
+
 </body>
 </html>

@@ -1,101 +1,59 @@
 #include <iostream>
-#include <map>
 #include <vector>
+#include <cmath>
 #include <algorithm>
-#include <fstream>
-#include <sstream>
-#include "graph.h"
-#include "ev_logic.h"
-
 using namespace std;
 
-map<int, Node> nodes;
-map<string, int> nameToId;
-map<int, vector<string>> cityStations;
+struct Station {
+    double lat, lon;
+};
 
-void loadStations() {
-    ifstream file("data/stations.txt");
+double getDistance(double lat1, double lon1, double lat2, double lon2) {
+    double R = 6371;
+    double dLat = (lat2 - lat1) * M_PI / 180;
+    double dLon = (lon2 - lon1) * M_PI / 180;
 
-    int cityId;
-    string line;
+    double a = sin(dLat/2)*sin(dLat/2) +
+               cos(lat1*M_PI/180)*cos(lat2*M_PI/180) *
+               sin(dLon/2)*sin(dLon/2);
 
-    while (file >> cityId) {
-        vector<string> stations;
-
-        getline(file, line);
-        stringstream ss(line);
-
-        string station;
-        while (ss >> station) {
-            stations.push_back(station);
-        }
-
-        cityStations[cityId] = stations;
-    }
-}
-
-string toLower(string s) {
-    transform(s.begin(), s.end(), s.begin(), ::tolower);
-    return s;
-}
-
-void loadData(Graph &g) {
-
-    vector<string> cityNames = {
-        "Delhi","Mumbai","Bangalore","Chennai","Kolkata",
-        "Hyderabad","Pune","Ahmedabad","Jaipur","Lucknow",
-        "Chandigarh","Bhopal","Indore","Nagpur","Surat",
-        "Patna","Ranchi","Guwahati","Kochi","Thiruvananthapuram",
-        "Coimbatore","Nashik","Agra","Varanasi","Kanpur",
-        "Amritsar","Jodhpur","Udaipur","Raipur","Bhubaneswar",
-        "Dehradun","Shimla","Goa","Mysore","Visakhapatnam",
-        "Vijayawada","Madurai","Tiruchirappalli","Gwalior",
-        "Jhansi","Kota","Bareilly","Aligarh","Noida",
-        "Gurugram","Faridabad","Dhanbad","Siliguri",
-        "Imphal","Aizawl"
-    };
-
-    for (int i = 0; i < cityNames.size(); i++) {
-        nodes[i] = {cityNames[i], 0, 0};
-        nameToId[toLower(cityNames[i])] = i;
-    }
+    return R * 2 * atan2(sqrt(a), sqrt(1-a));
 }
 
 int main() {
 
-    Graph g(50);
-    loadData(g);
+    int n;
+    cin >> n;
 
-    loadStations(); 
+    vector<Station> stations(n);
 
-    cout << "Available Locations:\n";
-    for (auto &p : nodes)
-        cout << p.second.name << "\n";
+    for (int i = 0; i < n; i++)
+        cin >> stations[i].lat >> stations[i].lon;
 
-    string city;
-    int batteryPercent;
+    double userLat, userLon, battery;
+    cin >> userLat >> userLon >> battery;
 
-    cout << "\nEnter current city: ";
-    cin >> city;
+    double maxRange = (battery * 400) / 100;
 
-    city = toLower(city);
+    vector<pair<double,int>> valid;
 
-    if (nameToId.find(city) == nameToId.end()) {
-        cout << "Invalid city!\n";
-        return 0;
+    for (int i = 0; i < n; i++) {
+        double d = getDistance(userLat, userLon, stations[i].lat, stations[i].lon);
+
+        if (d <= maxRange) {
+            valid.push_back({d, i});
+        }
     }
 
-    int source = nameToId[city]; 
+    sort(valid.begin(), valid.end());
 
-    cout << "Enter battery %: ";
-    cin >> batteryPercent;
+    int limit = min(3, (int)valid.size());
 
-    int battery = (batteryPercent * 400) / 100;
+    cout << limit << "\n";
 
-    cout << "\n Searching nearest charging stations...\n";
-
-    // UPDATED FUNCTION CALL
-    findBestStations(source, battery, g, cityStations, nodes);
+    for (int i = 0; i < limit; i++) {
+        cout << valid[i].second << " " << valid[i].first << "\n";
+    }
 
     return 0;
 }
