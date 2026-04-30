@@ -14,8 +14,14 @@ window.findStations = async function (e, userLat, userLon) {
 
     if (!cityElem || !batteryElem) return;
 
-    let city = cityElem.value;
+    let city = cityElem.value.trim();
     let battery = batteryElem.value;
+
+    // If they manually typed 'current location' but we don't have GPS coordinates yet, trigger GPS
+    if (city.toLowerCase() === "current location" && userLat === undefined && window.lastUserLat === undefined) {
+        window.useMyLocation();
+        return;
+    }
 
     let payload = { city, battery };
     
@@ -23,10 +29,15 @@ window.findStations = async function (e, userLat, userLon) {
     if (userLat !== undefined && userLon !== undefined) {
         payload.userLat = userLat;
         payload.userLon = userLon;
+        window.lastUserLat = userLat;
+        window.lastUserLon = userLon;
         // Optionally update UI city name
         cityElem.value = "Current Location";
+    } else if (city.toLowerCase() === "current location" && window.lastUserLat !== undefined) {
+        payload.userLat = window.lastUserLat;
+        payload.userLon = window.lastUserLon;
     } else if (!city) {
-        alert("Please enter a city or use your location.");
+        alert("Please enter a location or use your GPS.");
         return;
     }
 
@@ -59,6 +70,14 @@ window.findStations = async function (e, userLat, userLon) {
 
     let resultsContainer = document.getElementById("results") || document.getElementById("dynamic-results");
 
+    if (!stations || stations.length === 0) {
+        if (resultsContainer) {
+            resultsContainer.innerHTML = "<div class='station' style='color: #ef4444; font-weight: bold;'>No charging stations found within 50km of this location.</div>";
+        }
+        alert("No charging stations found nearby.");
+        return;
+    }
+
     stations.forEach(st => {
 
         let marker = L.marker([st.lat, st.lon]).addTo(map)
@@ -69,13 +88,32 @@ window.findStations = async function (e, userLat, userLon) {
         let div = document.createElement("div");
         div.className = "station";
 
+        let alertsHtml = '';
+        if (st.alerts && st.alerts.length > 0) {
+            alertsHtml = `<div style="background: #fef2f2; color: #ef4444; font-size: 13px; padding: 5px; margin-top: 5px; border-radius: 5px; border: 1px solid #fca5a5;">
+                <b>⚠️ Community Alerts:</b><br>
+                ${st.alerts.map(a => `- ${a.message}`).join('<br>')}
+            </div>`;
+        }
+
         div.innerHTML = `
             <b>${st.name}</b><br>
             ${st.distance} km<br>
-            <button class="route-btn"
-                onclick="findRoute(${lat}, ${lon}, ${st.lat}, ${st.lon})">
-                Find Route
-            </button>
+            ${alertsHtml}
+            <div style="display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px;">
+                <button class="route-btn" style="flex: 1; padding: 8px;"
+                    onclick="findRoute(${lat}, ${lon}, ${st.lat}, ${st.lon})">
+                    View Route
+                </button>
+                <button class="route-btn" style="background: #10b981; flex: 1; padding: 8px;"
+                    onclick="window.open('https://www.google.com/maps/dir/?api=1&origin=${lat},${lon}&destination=${st.lat},${st.lon}', '_blank')">
+                    Navigate 🧭
+                </button>
+                <button class="route-btn" style="background: #ef4444; flex: 1; padding: 8px; min-width: 100%;"
+                    onclick="reportIssue('${st.name.replace(/'/g, "\\'")}')">
+                    ⚠️ Report Issue
+                </button>
+            </div>
         `;
 
         if (resultsContainer) resultsContainer.appendChild(div);
@@ -173,6 +211,34 @@ window.findRoute = async function (lat1, lon1, lat2, lon2) {
     } catch (error) {
         console.error("Error fetching route from OpenStreetMap:", error);
         alert("Failed to fetch route from OpenStreetMap.");
+    }
+};
+
+// REPORT ISSUE
+window.reportIssue = async function(stationName) {
+    let issue = prompt("Enter alert or issue for " + stationName + " (e.g. 'Charger 2 broken'):");
+    if (!issue || !issue.trim()) return;
+    
+    try {
+        let res = await fetch("/addAlert", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ stationName, issue: issue.trim() })
+        });
+        let data = await res.json();
+        if (data.success) {
+            alert("Thank you! Your alert has been shared with the community.");
+            let cityElem = document.getElementById("city") || document.getElementById("city-input");
+            if (cityElem && cityElem.value) {
+                // re-submit to refresh the UI
+                window.findStations();
+            }
+        } else {
+            alert("Failed to share alert.");
+        }
+    } catch(e) {
+        console.error(e);
+        alert("Failed to share alert.");
     }
 };
 
