@@ -1,89 +1,80 @@
-EVRoute – Smart EV Charging Assistant
+# EV Route – Smart EV Charging Assistant
 
-EVRoute is a C++ project that helps electric vehicle users find the nearest reachable charging station based on their current battery level.
+EV Route is a full-stack web application designed to help electric vehicle drivers find the nearest reachable charging stations based on their current location and battery level. 
 
-Instead of planning an entire journey, this system focuses on a real-world problem:
+Originally built as a C++ algorithmic project, **EV Route** has now evolved into a dynamic, map-based web application with live API integrations, voice recognition, and a community-driven alert system!
 
-“I’m low on battery — where should I go right now?”
+Instead of planning an entire cross-country journey, this system focuses on the most critical real-world problem:
+*“I’m low on battery — where should I go right now?”*
 
-What This Project Does
-Takes your current city and battery percentage
-Calculates how far you can travel
-Finds the nearest reachable charging cities
-Shows the best options (top 3)
-Displays:
-Optimal path
-Battery left after reaching
-Safety margin
-Charging stations available in that city
-Special Feature
+---
 
-If you're already in a city that has charging stations:
+## 🌟 Key Features
 
-The system will recognize it instantly and suggest charging there instead of navigating elsewhere.
+### 🗺️ Interactive Map & Visualization (Leaflet.js)
+- Beautiful, real-time map interface powered by OpenStreetMap and Leaflet.js.
+- Automatically zooms and centers on your searched location.
+- Charging stations are plotted as interactive markers.
 
-How It Works
-Cities are modeled as nodes in a graph
-Roads between cities are edges with distances
-Dijkstra’s algorithm is used to find shortest paths
-Battery constraint ensures only reachable stations are suggested
-Charging Station Logic
+### 📍 Smart Geolocation & Fallbacks
+- **Use My Location:** Click the GPS icon (📍) to instantly fetch your exact browser coordinates.
+- **Dual Database System:** The app first searches the live **Open Charge Map API** for real-world stations. If none are found within 50km, it smartly falls back to your **local dataset** (`data/stations.txt`), generating offset coordinates so local stations still appear on the map!
 
-Unlike simple models:
+### 🧭 Routing & Navigation
+- **View Route:** Calculates and draws the optimal driving path directly on the map using the **Open Source Routing Machine (OSRM)** API.
+- **Turn-by-Turn Navigation:** Click the "Navigate 🧭" button to instantly transfer the route to **Google Maps** (opens natively on mobile devices) for voice-guided navigation.
 
-Each city can have multiple charging stations
-Stations are loaded dynamically from a dataset
-The system suggests the best city, then shows all available stations inside it
-Project Structure
-EVRoute/
-│
-├── main.cpp          # User interaction + flow control
-├── graph.cpp/h       # Graph representation
-├── dijkstra.cpp/h    # Shortest path logic
-├── ev_logic.cpp/h    # EV-specific logic (core intelligence)
-│
-├── data/
-│   └── stations.txt  # Charging stations per city
-│
-└── fetch_data.py     # Generates realistic station dataset
-Example Run
-Enter current city: gurugram
-Enter battery %: 20
+### 🎙️ Voice Search
+- Click the microphone icon (🎤) to speak your desired city or location using the **Web Speech API**, making it easy to search hands-free.
 
-You are already at a charging station: Gurugram
+### ⚠️ Community Alerts System
+- A built-in, persistent community feature!
+- Users can click **Report Issue** on any station to report broken chargers, queues, or availability.
+- Alerts are saved to `data/alerts.json` and immediately synced to the UI, appearing as highlighted warning boxes for all other drivers looking at that station.
 
-Battery Before Charge: 80 km (20%)
+---
 
-Charging... Done!
-Battery After Charge: 100% (400 km range)
+## 🛠️ Tech Stack
 
-Available Charging Stations:
-  - Relicell_Gurugram_1
-  - TataPower_Gurugram_2
-Key Features
-Real-world EV use case (low battery scenario)
-Multi-station support per city
-Battery-aware routing
-Safety margin warnings
-Clean and readable output
-Scalable to large datasets (50+ cities)
-Future Improvements
-Find nearest station inside a city (using coordinates)
-Map-based visualization (UI)
-Charging time estimation
-Live data integration (APIs)
-Traffic-aware routing
-Why This Project Stands Out
+- **Frontend:** Vanilla JavaScript, HTML5, CSS3, Leaflet.js
+- **Backend:** Node.js, Express.js
+- **External APIs:** 
+  - Open Charge Map (Live Station Data)
+  - Nominatim (Geocoding)
+  - OSRM (Route Paths)
+  - Google Maps Directions URI (Turn-by-Turn Navigation)
+- **Local Data:** Fallback city nodes (`data/nodes.txt`) and custom stations (`data/stations.txt`).
 
-Most EV projects simulate full routes.
+---
 
-EVRoute focuses on something more practical:
+## 🚀 How to Run the Web App
 
-Helping users make quick, safe decisions when battery is low
+1. Ensure you have **Node.js** installed on your system.
+2. Open your terminal in the `EVRoute` directory.
+3. Install dependencies:
+   ```bash
+   npm install express axios
+   ```
+4. Start the server:
+   ```bash
+   node server.js
+   ```
+5. Open your browser and go to:
+   ```text
+   http://localhost:3000
+   ```
 
-How to Run
+---
+
+## ⚙️ The Original C++ Core
+
+This project originated as a systems and algorithms project focusing on real-world EV challenges using Dijkstra's algorithm. The original C++ files are still included in the repository for academic reference and algorithmic testing.
+
+**To run the legacy C++ console application:**
+```bash
 g++ main.cpp graph.cpp dijkstra.cpp ev_logic.cpp -o evroute
 ./evroute
-Author
+```
 
-Built as a systems + algorithm project focusing on real-world EV challenges.
+---
+*Built focusing on real-world EV challenges.*
