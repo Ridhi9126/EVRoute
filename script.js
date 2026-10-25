@@ -4,6 +4,74 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
 let markers = [];
 let routeLine;
+let userMarker = null;    // live location marker
+let userCircle = null;    // accuracy circle
+let watchId = null;       // watchPosition ID
+
+// Pulsing icon for the user's live location
+const liveIcon = L.divIcon({
+    className: '',
+    html: `<div style="
+        width: 18px; height: 18px;
+        background: #3b82f6;
+        border: 3px solid white;
+        border-radius: 50%;
+        box-shadow: 0 0 0 0 rgba(59,130,246,0.6);
+        animation: livePulse 1.5s infinite;
+    "></div>`,
+    iconSize: [18, 18],
+    iconAnchor: [9, 9]
+});
+
+// Inject pulse animation into page once
+(function injectPulseCSS() {
+    if (document.getElementById('live-pulse-style')) return;
+    const s = document.createElement('style');
+    s.id = 'live-pulse-style';
+    s.textContent = `
+        @keyframes livePulse {
+            0%   { box-shadow: 0 0 0 0   rgba(59,130,246,0.6); }
+            70%  { box-shadow: 0 0 0 14px rgba(59,130,246,0);   }
+            100% { box-shadow: 0 0 0 0   rgba(59,130,246,0);   }
+        }
+    `;
+    document.head.appendChild(s);
+})();
+
+// Update (or create) the live location marker on the map
+function updateUserMarker(lat, lon, accuracy) {
+    if (userMarker) {
+        userMarker.setLatLng([lat, lon]);
+    } else {
+        userMarker = L.marker([lat, lon], { icon: liveIcon, zIndexOffset: 1000 })
+            .addTo(map)
+            .bindPopup('📍 You are here');
+    }
+    if (userCircle) {
+        userCircle.setLatLng([lat, lon]).setRadius(accuracy);
+    } else {
+        userCircle = L.circle([lat, lon], {
+            radius: accuracy,
+            color: '#3b82f6',
+            fillColor: '#3b82f6',
+            fillOpacity: 0.10,
+            weight: 1
+        }).addTo(map);
+    }
+}
+
+// Navigate to a station — reads live GPS AT CLICK TIME, not at render time
+window.navigateToStation = function(stLat, stLon) {
+    // Always use the freshest GPS fix if we have one
+    if (window.lastUserLat !== undefined && window.lastUserLon !== undefined) {
+        const url = `https://www.google.com/maps/dir/?api=1&origin=${window.lastUserLat},${window.lastUserLon}&destination=${stLat},${stLon}&travelmode=driving`;
+        window.open(url, '_blank');
+    } else {
+        // No GPS yet — let Google Maps ask the user for their location itself
+        const url = `https://www.google.com/maps/dir/?api=1&destination=${stLat},${stLon}&travelmode=driving`;
+        window.open(url, '_blank');
+    }
+};
 
 // FIND STATIONS
 window.findStations = async function (e, userLat, userLon) {
@@ -96,21 +164,31 @@ window.findStations = async function (e, userLat, userLon) {
             </div>`;
         }
 
+        // Store station coords on the div element so the live-GPS functions can read them at click-time
+        const stLatFixed  = st.lat;
+        const stLonFixed  = st.lon;
+        // city-centre coords (fallback for View Route when GPS unavailable)
+        const cityLat = lat;
+        const cityLon = lon;
+
         div.innerHTML = `
             <b>${st.name}</b><br>
             ${st.distance} km<br>
             ${alertsHtml}
             <div style="display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px;">
                 <button class="route-btn" style="flex: 1; padding: 8px;"
-                    onclick="findRoute(${lat}, ${lon}, ${st.lat}, ${st.lon})">
+                    onclick="findRoute(
+                        window.lastUserLat !== undefined ? window.lastUserLat : ${cityLat},
+                        window.lastUserLon !== undefined ? window.lastUserLon : ${cityLon},
+                        ${stLatFixed}, ${stLonFixed})">
                     View Route
                 </button>
                 <button class="route-btn" style="background: #10b981; flex: 1; padding: 8px;"
-                    onclick="window.open('https://www.google.com/maps/dir/?api=1&origin=${lat},${lon}&destination=${st.lat},${st.lon}', '_blank')">
+                    onclick="navigateToStation(${stLatFixed}, ${stLonFixed})">
                     Navigate 🧭
                 </button>
                 <button class="route-btn" style="background: #ef4444; flex: 1; padding: 8px; min-width: 100%;"
-                    onclick="reportIssue('${st.name.replace(/'/g, "\\'")}')">
+                    onclick="reportIssue('${st.name.replace(/'/g, "\\'")}')">  
                     ⚠️ Report Issue
                 </button>
             </div>
@@ -242,22 +320,71 @@ window.reportIssue = async function(stationName) {
     }
 };
 
-// GEOLOCATION
+// GEOLOCATION — high-accuracy live tracking
 window.useMyLocation = function() {
-    if ("geolocation" in navigator) {
-        navigator.geolocation.getCurrentPosition(
-            (position) => {
-                let lat = position.coords.latitude;
-                let lon = position.coords.longitude;
-                // Automatically find stations near this exact location
-                window.findStations(null, lat, lon);
-            },
-            (error) => {
-                console.error("Geolocation error:", error);
-                alert("Unable to retrieve your location. Please check your browser permissions or enter a city manually.");
-            }
-        );
-    } else {
+    if (!("geolocation" in navigator)) {
         alert("Geolocation is not supported by your browser.");
+        return;
     }
+
+    // Show a loading state on the button
+    const btn = document.getElementById('location-btn');
+    if (btn) { btn.textContent = '⏳'; btn.disabled = true; }
+
+    const geoOptions = {
+        enableHighAccuracy: true,   // ✅ request GPS chip, not IP-based location
+        timeout: 15000,             // wait up to 15s
+        maximumAge: 0               // never use a cached position
+    };
+
+    // Stop any existing watch before starting a new one
+    if (watchId !== null) {
+        navigator.geolocation.clearWatch(watchId);
+        watchId = null;
+    }
+
+    // One-time fetch to immediately trigger findStations
+    navigator.geolocation.getCurrentPosition(
+        (position) => {
+            if (btn) { btn.textContent = '📍'; btn.disabled = false; }
+            const lat = position.coords.latitude;
+            const lon = position.coords.longitude;
+            const accuracy = position.coords.accuracy;
+
+            // Store globally
+            window.lastUserLat = lat;
+            window.lastUserLon = lon;
+
+            // Place / move the blue dot on the map
+            updateUserMarker(lat, lon, accuracy);
+            map.setView([lat, lon], 14);
+
+            // Find stations around the real GPS location
+            window.findStations(null, lat, lon);
+
+            // ✅ Start continuous tracking so the dot keeps moving
+            watchId = navigator.geolocation.watchPosition(
+                (pos) => {
+                    const wLat = pos.coords.latitude;
+                    const wLon = pos.coords.longitude;
+                    const wAcc = pos.coords.accuracy;
+                    window.lastUserLat = wLat;
+                    window.lastUserLon = wLon;
+                    updateUserMarker(wLat, wLon, wAcc);
+                },
+                (err) => console.warn("Live tracking error:", err),
+                geoOptions
+            );
+        },
+        (error) => {
+            if (btn) { btn.textContent = '📍'; btn.disabled = false; }
+            console.error("Geolocation error:", error);
+            let msg = "Unable to retrieve your location.";
+            if (error.code === 1) msg += "\n\nPlease allow location access in your browser settings.";
+            else if (error.code === 2) msg += "\n\nPosition unavailable. Try again outdoors or check your GPS.";
+            else if (error.code === 3) msg += "\n\nRequest timed out. Please try again.";
+            alert(msg);
+        },
+        geoOptions
+    );
 };
